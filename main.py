@@ -1,9 +1,9 @@
 import requests
 
-API_KEY = "1uEOrBKxMZkgT7AbHJvWRXGhIvAhLOr1"
+API_KEY = "5XtNvQ9ULF0zEKrstTCmxmgOZKq3VoGI"
 
 
-def get_weather(latitude, longitude):
+def get_weather(latitude, longitude, location_key = None):
     """
     :param latitude: широта
     :param longitude: долгота
@@ -18,7 +18,7 @@ def get_weather(latitude, longitude):
     location_data = location_response.json()
     location_key = location_data["Key"]
     weather_url = f"http://dataservice.accuweather.com/forecasts/v1/daily/1day/{location_key}"
-    weather_params = {"apikey": API_KEY, "metric": "true"}
+    weather_params = {"apikey": API_KEY, "details": "true", "metric": "true"}
     weather_response = requests.get(weather_url, params=weather_params)
     weather_data = weather_response.json()
     return weather_data
@@ -44,7 +44,7 @@ def get_weather_data(weather_data):
         "max temperature": max_temperature,
         "wind speed": wind_speed,
         "snow probability": snow_probability,
-        "rain_probability": rain_probability
+        "rain probability": rain_probability
     }
 
 
