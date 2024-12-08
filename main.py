@@ -9,19 +9,22 @@ def get_weather(latitude, longitude, location_key = None):
     :param longitude: долгота
     :return: словарь, содержащий все погодные данные о следующем дне для заданных координат
     """
-    location_url = f"http://dataservice.accuweather.com/locations/v1/cities/geoposition/search"
-    location_params = {
-        "apikey": API_KEY,
-        "q": f"{latitude},{longitude}"
-    }
-    location_response = requests.get(location_url, params=location_params)
-    location_data = location_response.json()
-    location_key = location_data["Key"]
-    weather_url = f"http://dataservice.accuweather.com/forecasts/v1/daily/1day/{location_key}"
-    weather_params = {"apikey": API_KEY, "details": "true", "metric": "true"}
-    weather_response = requests.get(weather_url, params=weather_params)
-    weather_data = weather_response.json()
-    return weather_data
+    try:
+        location_url = f"http://dataservice.accuweather.com/locations/v1/cities/geoposition/search"
+        location_params = {
+            "apikey": API_KEY,
+            "q": f"{latitude},{longitude}"
+        }
+        location_response = requests.get(location_url, params=location_params)
+        location_data = location_response.json()
+        location_key = location_data["Key"]
+        weather_url = f"http://dataservice.accuweather.com/forecasts/v1/daily/1day/{location_key}"
+        weather_params = {"apikey": API_KEY, "details": "true", "metric": "true"}
+        weather_response = requests.get(weather_url, params=weather_params)
+        weather_data = weather_response.json()
+        return weather_data
+    except requests.exceptions.RequestException as e:
+        return "Ошибка подключения к серверу."
 
 
 def get_weather_data(weather_data):
@@ -33,19 +36,22 @@ def get_weather_data(weather_data):
         Вероятность снега
         Вероятность дождя
     """
-    daily_forecast = weather_data["DailyForecasts"][0]
-    min_temperature = daily_forecast["Temperature"]["Minimum"]["Value"]
-    max_temperature = daily_forecast["Temperature"]["Maximum"]["Value"]
-    snow_probability = daily_forecast["Day"]["RainProbability"]
-    wind_speed = daily_forecast["Day"]["Wind"]["Speed"]["Value"]
-    rain_probability = daily_forecast["Day"]["RainProbability"]
-    return {
-        "min temperature": min_temperature,
-        "max temperature": max_temperature,
-        "wind speed": wind_speed,
-        "snow probability": snow_probability,
-        "rain probability": rain_probability
-    }
+    try:
+        daily_forecast = weather_data["DailyForecasts"][0]
+        min_temperature = daily_forecast["Temperature"]["Minimum"]["Value"]
+        max_temperature = daily_forecast["Temperature"]["Maximum"]["Value"]
+        snow_probability = daily_forecast["Day"]["RainProbability"]
+        wind_speed = daily_forecast["Day"]["Wind"]["Speed"]["Value"]
+        rain_probability = daily_forecast["Day"]["RainProbability"]
+        return {
+            "min temperature": min_temperature,
+            "max temperature": max_temperature,
+            "wind speed": wind_speed,
+            "snow probability": snow_probability,
+            "rain probability": rain_probability
+        }
+    except KeyError as e:
+        return "Ошибка получения данных о погоде."
 
 
 def check_bad_weather(min_temperature, max_temperature, wind_speed, snow_probability, rain_probability):
@@ -66,19 +72,22 @@ def get_coordinates_from_city(city_name):
     :param city_name: Название города
     :return: Кортеж (latitude, longitude, location_key)
     """
-    params = {
-        "apikey": API_KEY,
-        "q": city_name,
-        "language": "en",
-    }
-    response = requests.get("http://dataservice.accuweather.com/locations/v1/cities/search", params=params)
-    if response.status_code != 200:
-        raise Exception(f"Ошибка запроса к AccuWeather API: {response.status_code}, {response.text}")
-    data = response.json()
-    if not data:
-        raise ValueError(f"Город {city_name} не найден.")
-    location = data[0]
-    latitude = location["GeoPosition"]["Latitude"]
-    longitude = location["GeoPosition"]["Longitude"]
-    location_key = location["Key"]
-    return latitude, longitude, location_key
+    try:
+        params = {
+            "apikey": API_KEY,
+            "q": city_name,
+            "language": "en",
+        }
+        response = requests.get("http://dataservice.accuweather.com/locations/v1/cities/search", params=params)
+        if response.status_code != 200:
+            raise Exception(f"Ошибка запроса к AccuWeather API: {response.status_code}, {response.text}")
+        data = response.json()
+        if not data:
+            raise ValueError(f"Город {city_name} не найден.")
+        location = data[0]
+        latitude = location["GeoPosition"]["Latitude"]
+        longitude = location["GeoPosition"]["Longitude"]
+        location_key = location["Key"]
+        return latitude, longitude, location_key
+    except requests.exceptions.RequestException:
+        return "Ошибка подключения к серверу."

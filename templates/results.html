@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Результат погоды</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2em;
+            color: #333;
+        }
+
+        .result-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+            margin-top: 20px;
+        }
+
+        .result-container p {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+
+        .good {
+            color: green;
+            font-weight: bold;
+        }
+
+        .bad {
+            color: red;
+            font-weight: bold;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+
+        .back-link a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        .flash-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Результат погоды</h1>
+
+    {% if messages %}
+        <div class="flash-message">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="result-container">
+        <p><strong>Для города {{ start_city }} погода: </strong><span class="{{ start_status }}">{{ start_status|capitalize }}</span></p>
+        <p><strong>Для города {{ end_city }} погода: </strong><span class="{{ end_status }}">{{ end_status|capitalize }}</span></p>
+    </div>
+
+    <div class="back-link">
+        <a href="{{ url_for('index') }}">Назад к вводу данных</a>
+    </div>
+</body>
+</html>
+
