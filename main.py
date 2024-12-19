@@ -1,6 +1,6 @@
 import requests
 
-API_KEY = "5XtNvQ9ULF0zEKrstTCmxmgOZKq3VoGI"
+API_KEY = "0GyOclCRao3GjIxEXTtHbv8MRwpvATaZ"
 
 
 def get_weather(latitude, longitude, location_key = None):
