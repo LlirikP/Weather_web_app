@@ -44,22 +44,30 @@ app.layout = html.Div([
     ], style={'marginBottom': '20px'}),
 
     dcc.Graph(id='weather-graph'),
+
+    html.Div([
+        html.H3("Weather Route Map"),
+        dcc.Graph(id='route-map')
+    ], style={'marginTop': '20px'})
 ])
 
 
 @app.callback(
-    Output('weather-graph', 'figure'),
+    [Output('weather-graph', 'figure'),
+     Output('route-map', 'figure')],
     [Input('submit-button', 'n_clicks'),
      Input('weather-parameter', 'value'),
      Input('forecast-days', 'value')],
     [State('city-input', 'value')]
 )
 def update_graph(n_clicks, parameter, forecast_days, city_input):
+    map_figure = go.Figure()
     if n_clicks == 0 or not city_input:
         return go.Figure()
 
     city_names = [city.strip() for city in city_input.split(',')]
     all_weather_data = []
+    map_data = []
 
     for city_name in city_names:
         latitude, longitude, location_key = get_coordinates_from_city(city_name)
@@ -80,6 +88,12 @@ def update_graph(n_clicks, parameter, forecast_days, city_input):
             daily_data["City"] = city_name
             daily_data["Day"] = f"Hour 1"
             all_weather_data.append(daily_data)
+
+        map_data.append({
+            "lat": latitude,
+            "lon": longitude,
+            "city": city_name
+        })
 
     if parameter == 'precipitation':
         x = [f"{data['City']} ({data['Day']})" for data in all_weather_data]
@@ -153,7 +167,32 @@ def update_graph(n_clicks, parameter, forecast_days, city_input):
     else:
         raise ValueError(f"Invalid parameter selected: {parameter}")
 
-    return figure
+    map_figure = go.Figure()
+
+    first_last_color = 'red'
+    middle_color = 'blue'
+
+    for idx, city in enumerate(map_data):
+        color = first_last_color if idx == 0 or idx == len(map_data) - 1 else middle_color
+        map_figure.add_trace(go.Scattermapbox(
+            lat=[city["lat"]],
+            lon=[city["lon"]],
+            mode="markers",
+            marker=dict(size=10, color=color),
+            text=city["city"],
+            hoverinfo="text"
+        ))
+
+    map_figure.update_layout(
+        mapbox=dict(
+            style="open-street-map",
+            center=dict(lat=50, lon=10),
+            zoom=3
+        ),
+        title="Weather Route Map"
+    )
+
+    return figure, map_figure
 
 
 if __name__ == '__main__':
