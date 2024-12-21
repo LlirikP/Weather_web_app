@@ -1,13 +1,15 @@
 import requests
 
-API_KEY = "1bEE7WceTPRNRMMA97cD4kuYXAImgFaB"
+API_KEY = "OZy0selkVZggzCjgKs2IGKarXxdgtg3S"
 
 
 def get_weather(latitude, longitude, location_key=None, days_count=1):
     """
-    :param latitude: широта
-    :param longitude: долгота
-    :return: словарь, содержащий все погодные данные о следующем дне для заданных координат
+    :param latitude: Latitude of the location
+    :param longitude: Longitude of the location
+    :param location_key: Key of the location from AccuWeather API
+    :param days_count: Number of days for which forecast is needed (1, 3, 5 days)
+    :return: Dictionary containing the weather data for the requested days
     """
     try:
         location_url = f"http://dataservice.accuweather.com/locations/v1/cities/geoposition/search"
@@ -32,12 +34,12 @@ def get_weather(latitude, longitude, location_key=None, days_count=1):
 
 def get_weather_data(weather_data, i=0):
     """
-    Функция возвращает погодные условия в таком формате:
-        Минимальная температура
-        Максимальная температура
-        Скорость ветра
-        Вероятность снега
-        Вероятность дождя
+    Function that returns weather conditions in the following format:
+        Minimum temperature
+        Maximum temperature
+        Wind speed
+        Snow probability
+        Rain probability
     """
     try:
         if isinstance(weather_data, list):
@@ -88,9 +90,9 @@ def check_bad_weather(min_temperature, max_temperature, wind_speed, snow_probabi
 
 def get_coordinates_from_city(city_name):
     """
-    Получает координаты и ключ локации для города через AccuWeather API.
-    :param city_name: Название города
-    :return: Кортеж (latitude, longitude, location_key)
+    Gets coordinates and location key for a city via the AccuWeather API.
+    :param city_name: Name of the city
+    :return: Tuple (latitude, longitude, location_key)
     """
     try:
         params = {
