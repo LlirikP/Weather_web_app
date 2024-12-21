@@ -6,14 +6,29 @@ from main import get_weather, get_weather_data, get_coordinates_from_city
 app = dash.Dash(__name__)
 
 app.layout = html.Div([
-    html.H1("Weather Data Visualization", style={'textAlign': 'center'}),
-
+    html.H1("Weather Route Visualization", style={'textAlign': 'center'}),
     html.Div([
-        html.Label("Enter City Name:"),
-        dcc.Input(id='city-input', type='text', placeholder='City Name', style={'marginRight': '10px'}),
+        html.Label("Enter city names"),
+        dcc.Textarea(
+            id='city-input',
+            placeholder='City 1, City 2, City 3...',
+            style={'width': '100%', 'height': '100px'}
+        ),
         html.Button('Submit', id='submit-button', n_clicks=0),
     ], style={'marginBottom': '20px'}),
-
+    html.Div([
+        html.Label("Select Forecast Days:"),
+        dcc.RadioItems(
+            id='forecast-days',
+            options=[
+                {'label': '1 Hour', 'value': 0},
+                {'label': '1 Day', 'value': 1},
+                {'label': '5 Days', 'value': 5},
+            ],
+            value=1,
+            inline=True
+        )
+    ], style={'marginBottom': '20px'}),
     html.Div([
         html.Label("Select Weather Parameter:"),
         dcc.Dropdown(
@@ -35,113 +50,110 @@ app.layout = html.Div([
 @app.callback(
     Output('weather-graph', 'figure'),
     [Input('submit-button', 'n_clicks'),
-     Input('weather-parameter', 'value')],
+     Input('weather-parameter', 'value'),
+     Input('forecast-days', 'value')],
     [State('city-input', 'value')]
 )
-def update_graph(n_clicks, parameter, city_name):
-    if n_clicks == 0 or not city_name:
+def update_graph(n_clicks, parameter, forecast_days, city_input):
+    if n_clicks == 0 or not city_input:
         return go.Figure()
 
-    latitude, longitude, location_key = get_coordinates_from_city(city_name)
-    weather_data = get_weather_data(get_weather(latitude, longitude))
+    city_names = [city.strip() for city in city_input.split(',')]
+    all_weather_data = []
 
-    if not weather_data:
-        raise ValueError("Weather data is missing.")
+    for city_name in city_names:
+        latitude, longitude, location_key = get_coordinates_from_city(city_name)
+        if not location_key:
+            raise ValueError(f"City {city_name} not found.")
+
+        weather_data = get_weather(latitude, longitude, location_key, forecast_days)
+        if not weather_data:
+            raise ValueError(f"Could not retrieve weather for {city_name}.")
+        if forecast_days != 0:
+            for i in range(forecast_days):
+                daily_data = get_weather_data(weather_data, i)
+                daily_data["City"] = city_name
+                daily_data["Day"] = f"Day {i + 1}"
+                all_weather_data.append(daily_data)
+        else:
+            daily_data = get_weather_data(weather_data, 0)
+            daily_data["City"] = city_name
+            daily_data["Day"] = f"Hour 1"
+            all_weather_data.append(daily_data)
 
     if parameter == 'precipitation':
-        rain_probability = weather_data.get('rain probability', 0)
-        snow_probability = weather_data.get('snow probability', 0)
+        x = [f"{data['City']} ({data['Day']})" for data in all_weather_data]
+        rain_probs = [data['rain probability'] for data in all_weather_data]
+        snow_probs = [data['snow probability'] for data in all_weather_data]
 
-        x = ['Rain Probability', 'Snow Probability']
-        y = [rain_probability, snow_probability]
         figure = go.Figure(
-            data=go.Bar(
-                x=x,
-                y=y,
-                marker=dict(
-                    color=['#1f77b4', '#aec7e8'],
-                    line=dict(color='black', width=1.5)
-                ),
-                text=y,
-                textfont=dict(size=16, color='black'),
-                textposition='auto'
-            ),
+            data=[
+                go.Bar(name="Rain Probability", x=x, y=rain_probs, marker_color='#1f77b4'),
+                go.Bar(name="Snow Probability", x=x, y=snow_probs, marker_color='#aec7e8')
+            ],
             layout=go.Layout(
-                title=f'Precipitation Probabilities in {city_name}',
-                xaxis=dict(
-                    title='Precipitation Type',
-                    titlefont=dict(size=18, color='#7f7f7f'),
-                    tickfont=dict(size=14)
-                ),
-                yaxis=dict(
-                    title='Probability (%)',
-                    titlefont=dict(size=18, color='#7f7f7f'),
-                    tickfont=dict(size=14)
-                ),
-                template='plotly_white',
-                titlefont=dict(size=22),
-                margin=dict(l=40, r=40, t=40, b=40)
+                barmode='group',
+                title="Precipitation Probabilities",
+                xaxis_title="Cities and Days",
+                yaxis_title="Probability (%)",
+                template='plotly_white'
             )
         )
-        return figure
 
     elif parameter == 'temperature':
-        min_temp = weather_data.get('min temperature', None)
-        max_temp = weather_data.get('max temperature', None)
+        if forecast_days != 0:
+            x = [f"{data['City']} ({data['Day']})" for data in all_weather_data]
+            min_temps = [data['min temperature'] for data in all_weather_data]
+            max_temps = [data['max temperature'] for data in all_weather_data]
 
-        x = ['Min Temperature', 'Max Temperature']
-        y = [min_temp, max_temp]
-        figure = go.Figure(
-            data=go.Scatter(
-                x=x,
-                y=y,
-                mode='lines+markers',
-                line=dict(color='#ff7f0e', width=3),
-                marker=dict(size=10, color='rgb(255,127,14)', symbol='circle')
-            ),
-            layout=go.Layout(
-                title=f'Temperature in {city_name}',
-                xaxis=dict(
-                    title='Temperature difference',
-                    titlefont=dict(size=18, color='#7f7f7f'),
-                    tickfont=dict(size=14)
-                ),
-                yaxis=dict(
-                    title='Degrees (°C)',
-                    titlefont=dict(size=18, color='#7f7f7f'),
-                    tickfont=dict(size=14)
-                ),
-                template='plotly_white',
-                titlefont=dict(size=22),
-                margin=dict(l=40, r=40, t=40, b=40)
+            figure = go.Figure(
+                data=[
+                    go.Scatter(name="Min Temperature", x=x, y=min_temps, mode='lines+markers'),
+                    go.Scatter(name="Max Temperature", x=x, y=max_temps, mode='lines+markers')
+                ],
+                layout=go.Layout(
+                    title="Temperature Forecast",
+                    xaxis_title="Cities and Days",
+                    yaxis_title="Temperature (°C)",
+                    template='plotly_white'
+                )
             )
-        )
-        return figure
+        else:
+            x = [f"{data['City']} ({data['Day']})" for data in all_weather_data]
+            min_temps = [data['temperature'] for data in all_weather_data]
+            max_temps = [data['real feel temperature'] for data in all_weather_data]
+
+            figure = go.Figure(
+                data=[
+                    go.Scatter(name="Temperature", x=x, y=min_temps, mode='lines+markers'),
+                    go.Scatter(name="Real Feel Temperature", x=x, y=max_temps, mode='lines+markers')
+                ],
+                layout=go.Layout(
+                    title="Temperature Forecast",
+                    xaxis_title="Cities and Days",
+                    yaxis_title="Temperature (°C)",
+                    template='plotly_white'
+                )
+            )
 
     elif parameter == 'wind':
-        wind_speed = weather_data.get('wind speed', None)
+        x = [f"{data['City']} ({data['Day']})" for data in all_weather_data]
+        wind_speeds = [data['wind speed'] for data in all_weather_data]
 
-        labels = ['Wind Speed']
-        values = [wind_speed]
         figure = go.Figure(
-            data=go.Bar(
-                x=labels,
-                y=values,
-                marker=dict(color='#2ca02c')
-            ),
+            data=go.Bar(x=x, y=wind_speeds, marker_color='#2ca02c'),
             layout=go.Layout(
-                title=f'Wind Speed in {city_name}',
-                titlefont=dict(size=22),
-                xaxis=dict(title="Wind Speed"),
-                yaxis=dict(title="Speed (km/h)"),
-                template='plotly_white',
-                margin=dict(l=40, r=40, t=40, b=40)
+                title="Wind Speed Forecast",
+                xaxis_title="Cities and Days",
+                yaxis_title="Speed (km/h)",
+                template='plotly_white'
             )
         )
-        return figure
 
     else:
         raise ValueError(f"Invalid parameter selected: {parameter}")
+
+    return figure
 
 
 if __name__ == '__main__':
